@@ -87,6 +87,7 @@ int32 b2DynamicTree::AllocateNode()
 	m_nodes[nodeId].child2 = b2_nullNode;
 	m_nodes[nodeId].height = 0;
 	m_nodes[nodeId].userData = nullptr;
+	m_nodes[nodeId].moved = false;
 	++m_nodeCount;
 	return nodeId;
 }
@@ -115,6 +116,7 @@ int32 b2DynamicTree::CreateProxy(const b2AABB& aabb, void* userData)
 	m_nodes[proxyId].aabb.upperBound = aabb.upperBound + r;
 	m_nodes[proxyId].userData = userData;
 	m_nodes[proxyId].height = 0;
+	m_nodes[proxyId].moved = true;
 
 	InsertLeaf(proxyId);
 
@@ -188,6 +190,9 @@ bool b2DynamicTree::MoveProxy(int32 proxyId, const b2AABB& aabb, const b2Vec2& d
 	m_nodes[proxyId].aabb = fatAABB;
 
 	InsertLeaf(proxyId);
+
+	m_nodes[proxyId].moved = true;
+
 	return true;
 }
 

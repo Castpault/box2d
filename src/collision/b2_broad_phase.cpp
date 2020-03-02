@@ -34,22 +34,12 @@ b2BroadPhase::b2BroadPhase()
 	m_moveCapacity = 16;
 	m_moveCount = 0;
 	m_moveBuffer = (int32*)b2Alloc(m_moveCapacity * sizeof(int32));
-
-#if B2_MOVE_FLAGS == 1
-	m_moveFlagCapacity = 16;
-	m_moveFlags = (bool*)b2Alloc(m_moveFlagCapacity * sizeof(bool));
-	memset(m_moveFlags, 0, m_moveFlagCapacity * sizeof(bool));
-#endif
 }
 
 b2BroadPhase::~b2BroadPhase()
 {
 	b2Free(m_moveBuffer);
 	b2Free(m_pairBuffer);
-
-#if B2_MOVE_FLAGS == 1
-	b2Free(m_moveFlags);
-#endif
 }
 
 int32 b2BroadPhase::CreateProxy(const b2AABB& aabb, void* userData)
@@ -116,13 +106,12 @@ bool b2BroadPhase::QueryCallback(int32 proxyId)
 		return true;
 	}
 
-#if B2_MOVE_FLAGS == 1
-	if (m_moveFlags[proxyId] && proxyId > m_queryProxyId)
+	const bool moved = m_tree.WasMoved(proxyId);
+	if (moved && proxyId > m_queryProxyId)
 	{
 		// Both proxies are moving. Avoid duplicate pairs.
 		return true;
 	}
-#endif
 
 	// Grow the pair buffer as needed.
 	if (m_pairCount == m_pairCapacity)

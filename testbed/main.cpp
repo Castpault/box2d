@@ -30,6 +30,7 @@
 #include "settings.h"
 #include "test.h"
 
+#include <algorithm>
 #include <stdio.h>
 
 GLFWwindow* g_mainWindow = nullptr;

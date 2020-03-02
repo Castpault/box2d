@@ -26,6 +26,8 @@
 #include "box2d/b2_joint.h"
 #include "box2d/b2_world.h"
 
+#include <new>
+
 b2Body::b2Body(const b2BodyDef* bd, b2World* world)
 {
 	b2Assert(bd->position.IsValid());
