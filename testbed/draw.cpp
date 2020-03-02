@@ -21,9 +21,9 @@
 // SOFTWARE.
 
 #include "draw.h"
-#include <malloc.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <stdlib.h>
 
 #include "imgui/imgui.h"
 
