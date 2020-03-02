@@ -26,7 +26,12 @@
 #include "b2_settings.h"
 #include "b2_collision.h"
 #include "b2_dynamic_tree.h"
+
+// TODO eliminate
 #include <algorithm>
+#define B2_MOVE_FLAGS 1
+
+#include <string.h>
 
 struct b2Pair
 {
@@ -121,6 +126,12 @@ private:
 
 	int32 m_proxyCount;
 
+#if B2_MOVE_FLAGS == 1
+	// This could be compressed into bits
+	bool* m_moveFlags;
+	int32 m_moveFlagCapacity;
+#endif
+
 	int32* m_moveBuffer;
 	int32 m_moveCapacity;
 	int32 m_moveCount;
@@ -191,6 +202,30 @@ void b2BroadPhase::UpdatePairs(T* callback)
 	// Reset pair buffer
 	m_pairCount = 0;
 
+#if B2_MOVE_FLAGS == 1
+	// Ensure space for move flags
+	if (m_proxyCount > m_moveFlagCapacity)
+	{
+		b2Free(m_moveFlags);
+		m_moveFlagCapacity = m_proxyCount + (m_proxyCount >> 1);
+		m_moveFlags = (bool*)b2Alloc(m_moveFlagCapacity * sizeof(bool));
+		memset(m_moveFlags, 0, m_moveFlagCapacity * sizeof(bool));
+	}
+
+	// Set move flags
+	for (int32 i = 0; i < m_moveCount; ++i)
+	{
+		int32 proxyId = m_moveBuffer[i];
+		if (proxyId == e_nullProxy)
+		{
+			continue;
+		}
+
+		b2Assert(proxyId < m_moveFlagCapacity);
+		m_moveFlags[proxyId] = true;
+	}
+#endif
+
 	// Perform tree queries for all moving proxies.
 	for (int32 i = 0; i < m_moveCount; ++i)
 	{
@@ -208,9 +243,31 @@ void b2BroadPhase::UpdatePairs(T* callback)
 		m_tree.Query(this, fatAABB);
 	}
 
-	// Reset move buffer
-	m_moveCount = 0;
+#if B2_MOVE_FLAGS == 1
 
+	// Send pairs to caller
+	for (int32 i = 0; i < m_pairCount; ++i)
+	{
+		b2Pair* primaryPair = m_pairBuffer + i;
+		void* userDataA = m_tree.GetUserData(primaryPair->proxyIdA);
+		void* userDataB = m_tree.GetUserData(primaryPair->proxyIdB);
+
+		callback->AddPair(userDataA, userDataB);
+	}
+
+	// Clear move flags
+	for (int32 i = 0; i < m_moveCount; ++i)
+	{
+		int32 proxyId = m_moveBuffer[i];
+		if (proxyId == e_nullProxy)
+		{
+			continue;
+		}
+
+		b2Assert(proxyId < m_moveFlagCapacity);
+		m_moveFlags[proxyId] = false;
+	}
+#else
 	// Sort the pair buffer to expose duplicates.
 	std::sort(m_pairBuffer, m_pairBuffer + m_pairCount, b2PairLessThan);
 
@@ -236,9 +293,10 @@ void b2BroadPhase::UpdatePairs(T* callback)
 			++i;
 		}
 	}
+#endif
 
-	// Try to keep the tree balanced.
-	//m_tree.Rebalance(4);
+	// Reset move buffer
+	m_moveCount = 0;
 }
 
 template <typename T>
